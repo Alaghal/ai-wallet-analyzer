@@ -40,7 +40,14 @@ func (h *WalletHandler) AnalyzeWallet() http.HandlerFunc {
 			return
 		}
 
-		result := h.analyzer.Analyze(req.Address, req.Chain)
+		result, err := h.analyzer.Analyze(r.Context(), req.Address, req.Chain)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{
+				"error": err.Error(),
+			})
+			return
+		}
+
 		writeJSON(w, http.StatusOK, result)
 	}
 }
