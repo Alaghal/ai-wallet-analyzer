@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yourname/ai-wallet-analyzer/internal/models"
-	"github.com/yourname/ai-wallet-analyzer/internal/service"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/models"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/service"
 )
 
 type WalletHandler struct {

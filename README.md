@@ -26,3 +26,26 @@ Example request:
   "chain": "ethereum"
 }
 ```
+## AI Summary Generation
+
+The service supports pluggable LLM providers for wallet activity summarization.
+
+### Supported LLM providers
+
+- `mock` - local mock summary generator for development
+- `openai` - OpenAI-compatible chat completion API
+
+### Configuration
+
+- `LLM_PROVIDER_TYPE` - provider type (`mock` by default)
+- `OPENAI_API_URL` - OpenAI-compatible API URL
+- `OPENAI_API_KEY` - provider API key
+- `OPENAI_MODEL` - model name
+
+### Example
+
+```bash
+export LLM_PROVIDER_TYPE=openai
+export OPENAI_API_KEY=your_api_key
+export OPENAI_MODEL=gpt-4o-mini
+go run ./cmd/server

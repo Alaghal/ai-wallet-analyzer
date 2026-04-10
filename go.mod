@@ -1,4 +1,4 @@
-module github.com/yourname/ai-wallet-analyzer
+module github.com/Alaghal/ai-wallet-analyzer
 
 go 1.25.3
 
