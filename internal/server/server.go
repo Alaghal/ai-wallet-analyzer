@@ -10,10 +10,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/yourname/ai-wallet-analyzer/internal/config"
-	"github.com/yourname/ai-wallet-analyzer/internal/handlers"
-	"github.com/yourname/ai-wallet-analyzer/internal/provider"
-	"github.com/yourname/ai-wallet-analyzer/internal/service"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/ai"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/config"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/handlers"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/provider"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/service"
 )
 
 type Server struct {
@@ -43,7 +44,9 @@ func newRouter(cfg config.Config) http.Handler {
 	router := chi.NewRouter()
 
 	activityProvider := buildProvider(cfg)
-	analyzerService := service.NewAnalyzerService(activityProvider)
+	llmClient := buildLLMClient(cfg)
+
+	analyzerService := service.NewAnalyzerService(activityProvider, llmClient)
 	walletHandler := handlers.NewWalletHandler(analyzerService)
 
 	router.Get("/health", handlers.Health())
@@ -69,6 +72,22 @@ func buildProvider(cfg config.Config) provider.WalletActivityProvider {
 	default:
 		log.Printf("using wallet activity provider=mock")
 		return provider.NewMockWalletActivityProvider()
+	}
+}
+
+func buildLLMClient(cfg config.Config) ai.Client {
+	switch cfg.LLMProviderType {
+	case "openai":
+		log.Printf("using llm provider=openai-compatible model=%s", cfg.OpenAIModel)
+		return ai.NewOpenAIClient(
+			cfg.OpenAIAPIURL,
+			cfg.OpenAIAPIKey,
+			cfg.OpenAIModel,
+			cfg.HTTPTimeout,
+		)
+	default:
+		log.Printf("using llm provider=mock")
+		return ai.NewMockClient()
 	}
 }
 

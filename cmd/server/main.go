@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/yourname/ai-wallet-analyzer/internal/config"
-	"github.com/yourname/ai-wallet-analyzer/internal/server"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/config"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/server"
 )
 
 func main() {
