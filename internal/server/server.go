@@ -12,6 +12,7 @@ import (
 
 	"github.com/yourname/ai-wallet-analyzer/internal/config"
 	"github.com/yourname/ai-wallet-analyzer/internal/handlers"
+	"github.com/yourname/ai-wallet-analyzer/internal/provider"
 	"github.com/yourname/ai-wallet-analyzer/internal/service"
 )
 
@@ -21,7 +22,7 @@ type Server struct {
 }
 
 func New(cfg config.Config) *Server {
-	router := newRouter()
+	router := newRouter(cfg)
 
 	httpServer := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.AppPort),
@@ -38,10 +39,11 @@ func New(cfg config.Config) *Server {
 	}
 }
 
-func newRouter() http.Handler {
+func newRouter(cfg config.Config) http.Handler {
 	router := chi.NewRouter()
 
-	analyzerService := service.NewAnalyzerService()
+	activityProvider := buildProvider(cfg)
+	analyzerService := service.NewAnalyzerService(activityProvider)
 	walletHandler := handlers.NewWalletHandler(analyzerService)
 
 	router.Get("/health", handlers.Health())
@@ -53,6 +55,21 @@ func newRouter() http.Handler {
 	})
 
 	return router
+}
+
+func buildProvider(cfg config.Config) provider.WalletActivityProvider {
+	switch cfg.ProviderType {
+	case "etherscan":
+		log.Printf("using wallet activity provider=etherscan")
+		return provider.NewEtherscanWalletActivityProvider(
+			cfg.EtherscanAPIURL,
+			cfg.EtherscanAPIKey,
+			cfg.HTTPTimeout,
+		)
+	default:
+		log.Printf("using wallet activity provider=mock")
+		return provider.NewMockWalletActivityProvider()
+	}
 }
 
 func (s *Server) Run(ctx context.Context) error {

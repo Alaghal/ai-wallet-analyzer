@@ -25,3 +25,4 @@ Example request:
   "address": "0x1234567890abcdef",
   "chain": "ethereum"
 }
+```
