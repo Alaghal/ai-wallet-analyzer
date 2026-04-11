@@ -127,43 +127,24 @@ Exposes Prometheus-compatible metrics.
 ## 🏗 Architecture
 
 ```mermaid
-flowchart LR
-    %% Client
-    C[Client] -->|POST /analyze-wallet| API[API Layer]
+graph LR
+    Client([Client]) -->|POST /api/v1/analyze-wallet| API[API Layer]
+    API --> MW[Middleware Layer]
+    MW --> Service[Analyzer Service]
 
-    %% Middleware
-    API --> MW[Middleware]
-    MW --> RID[Request ID]
-    MW --> LOG[Logging]
-    MW --> REC[Recovery]
-    MW --> MET[Metrics]
+    Service --> Provider{Wallet Provider}
+    Provider -->|etherscan| Etherscan[Etherscan API]
+    Provider -->|mock| MockProvider[Mock Provider]
 
-    %% Core service
-    API --> S[Analyzer Service]
+    Service --> Prompt[Prompt Builder]
+    Prompt --> LLM{LLM Client}
+    LLM -->|openai| OpenAI[OpenAI API]
+    LLM -->|mock| MockLLM[Mock LLM]
 
-    %% Provider
-    S --> P[Wallet Activity Provider]
-    P -->|mock| MP[Mock Provider]
-    P -->|etherscan| EP[Etherscan API]
+    Service --> Response[JSON Response]
+    Response --> Client
 
-    %% Processing
-    S --> PROC[Analysis Pipeline]
-    PROC --> SCORE[Risk Score]
-    PROC --> LEVEL[Activity Level]
-
-    %% LLM
-    PROC --> PROMPT[Prompt Builder]
-    PROMPT --> LLM[LLM Client]
-    LLM -->|mock| ML[Mock LLM]
-    LLM -->|openai| OL[OpenAI API]
-
-    %% Response
-    LLM --> RESP[Summary]
-    RESP --> OUT[JSON Response]
-    OUT --> C
-
-    %% Metrics
-    MET --> METRICS[/Metrics Endpoint]
-    METRICS --> PROM[Prometheus]
-    PROM --> GRAF[Grafana]
+    MW -.-> Metrics[Metrics Endpoint]
+    Metrics -.-> Prometheus[Prometheus]
+    Prometheus -.-> Grafana[Grafana Dashboard]
 ```
