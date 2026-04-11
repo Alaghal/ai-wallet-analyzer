@@ -8,14 +8,19 @@ import (
 )
 
 type Config struct {
-	AppEnv          string
-	AppPort         int
-	LogLevel        string
-	LLMAPIURL       string
+	AppEnv   string
+	AppPort  int
+	LogLevel string
+
 	ProviderType    string
 	EtherscanAPIURL string
 	EtherscanAPIKey string
 	HTTPTimeout     time.Duration
+
+	LLMProviderType string
+	OpenAIAPIURL    string
+	OpenAIAPIKey    string
+	OpenAIModel     string
 }
 
 func MustLoad() Config {
@@ -38,14 +43,19 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		AppEnv:          getEnv("APP_ENV", "local"),
-		AppPort:         port,
-		LogLevel:        getEnv("LOG_LEVEL", "info"),
-		LLMAPIURL:       getEnv("LLM_API_URL", "http://localhost:11434"),
+		AppEnv:   getEnv("APP_ENV", "local"),
+		AppPort:  port,
+		LogLevel: getEnv("LOG_LEVEL", "info"),
+
 		ProviderType:    getEnv("PROVIDER_TYPE", "mock"),
 		EtherscanAPIURL: getEnv("ETHERSCAN_API_URL", "https://api.etherscan.io/api"),
 		EtherscanAPIKey: getEnv("ETHERSCAN_API_KEY", ""),
 		HTTPTimeout:     time.Duration(timeoutSeconds) * time.Second,
+
+		LLMProviderType: getEnv("LLM_PROVIDER_TYPE", "mock"),
+		OpenAIAPIURL:    getEnv("OPENAI_API_URL", "https://api.openai.com/v1/chat/completions"),
+		OpenAIAPIKey:    getEnv("OPENAI_API_KEY", ""),
+		OpenAIModel:     getEnv("OPENAI_MODEL", "gpt-4o-mini"),
 	}, nil
 }
 

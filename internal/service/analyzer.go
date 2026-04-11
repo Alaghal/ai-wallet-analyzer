@@ -3,18 +3,25 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
-	"github.com/yourname/ai-wallet-analyzer/internal/models"
-	"github.com/yourname/ai-wallet-analyzer/internal/provider"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/ai"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/models"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/provider"
 )
 
 type AnalyzerService struct {
-	provider provider.WalletActivityProvider
+	provider  provider.WalletActivityProvider
+	llmClient ai.Client
 }
 
-func NewAnalyzerService(provider provider.WalletActivityProvider) *AnalyzerService {
+func NewAnalyzerService(
+	provider provider.WalletActivityProvider,
+	llmClient ai.Client,
+) *AnalyzerService {
 	return &AnalyzerService{
-		provider: provider,
+		provider:  provider,
+		llmClient: llmClient,
 	}
 }
 
@@ -30,6 +37,26 @@ func (s *AnalyzerService) Analyze(
 	riskScore := calculateRiskScore(activity)
 	activityLevel := calculateActivityLevel(activity.TransactionCount)
 
+	summary := fmt.Sprintf(
+		"Wallet %s on %s has %d transactions, %d unique interactions, and activity level %s.",
+		activity.Address,
+		activity.Chain,
+		activity.TransactionCount,
+		activity.UniqueInteractions,
+		activityLevel,
+	)
+
+	if s.llmClient != nil {
+		prompt := ai.BuildWalletSummaryPrompt(activity, riskScore, activityLevel)
+
+		aiSummary, err := s.llmClient.GenerateSummary(ctx, prompt)
+		if err != nil {
+			log.Printf("llm summary generation failed: %v", err)
+		} else if aiSummary != "" {
+			summary = aiSummary
+		}
+	}
+
 	return models.AnalyzeWalletResponse{
 		Address:            activity.Address,
 		Chain:              activity.Chain,
@@ -38,14 +65,7 @@ func (s *AnalyzerService) Analyze(
 		TransactionCount:   activity.TransactionCount,
 		UniqueInteractions: activity.UniqueInteractions,
 		Tokens:             activity.Tokens,
-		Summary: fmt.Sprintf(
-			"Wallet %s on %s has %d transactions, %d unique interactions, and activity level %s.",
-			activity.Address,
-			activity.Chain,
-			activity.TransactionCount,
-			activity.UniqueInteractions,
-			activityLevel,
-		),
+		Summary:            summary,
 	}, nil
 }
 

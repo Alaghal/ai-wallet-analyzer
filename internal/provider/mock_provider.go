@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/yourname/ai-wallet-analyzer/internal/models"
+	"github.com/Alaghal/ai-wallet-analyzer/internal/models"
 )
 
 type MockWalletActivityProvider struct{}
