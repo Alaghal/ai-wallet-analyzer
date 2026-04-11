@@ -9,10 +9,14 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/Alaghal/ai-wallet-analyzer/internal/ai"
 	"github.com/Alaghal/ai-wallet-analyzer/internal/config"
 	"github.com/Alaghal/ai-wallet-analyzer/internal/handlers"
+	appMetrics "github.com/Alaghal/ai-wallet-analyzer/internal/metrics"
+	appMiddleware "github.com/Alaghal/ai-wallet-analyzer/internal/middleware"
 	"github.com/Alaghal/ai-wallet-analyzer/internal/provider"
 	"github.com/Alaghal/ai-wallet-analyzer/internal/service"
 )
@@ -43,13 +47,25 @@ func New(cfg config.Config) *Server {
 func newRouter(cfg config.Config) http.Handler {
 	router := chi.NewRouter()
 
-	activityProvider := buildProvider(cfg)
-	llmClient := buildLLMClient(cfg)
+	metricsRegistry := appMetrics.MustNew()
 
-	analyzerService := service.NewAnalyzerService(activityProvider, llmClient)
+	activityProvider, providerName := buildProvider(cfg)
+	llmClient, llmName := buildLLMClient(cfg)
+
+	instrumentedProvider := provider.NewInstrumentedProvider(providerName, activityProvider, metricsRegistry)
+	instrumentedLLM := ai.NewInstrumentedClient(llmName, llmClient, metricsRegistry)
+
+	analyzerService := service.NewAnalyzerService(instrumentedProvider, instrumentedLLM)
 	walletHandler := handlers.NewWalletHandler(analyzerService)
 
+	router.Use(chiMiddleware.Timeout(15 * time.Second))
+	router.Use(appMiddleware.RequestID)
+	router.Use(appMiddleware.Recovery)
+	router.Use(appMiddleware.Logging)
+	router.Use(appMiddleware.Metrics(metricsRegistry))
+
 	router.Get("/health", handlers.Health())
+	router.Handle("/metrics", promhttp.Handler())
 
 	router.Route("/api", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
@@ -60,7 +76,7 @@ func newRouter(cfg config.Config) http.Handler {
 	return router
 }
 
-func buildProvider(cfg config.Config) provider.WalletActivityProvider {
+func buildProvider(cfg config.Config) (provider.WalletActivityProvider, string) {
 	switch cfg.ProviderType {
 	case "etherscan":
 		log.Printf("using wallet activity provider=etherscan")
@@ -68,14 +84,14 @@ func buildProvider(cfg config.Config) provider.WalletActivityProvider {
 			cfg.EtherscanAPIURL,
 			cfg.EtherscanAPIKey,
 			cfg.HTTPTimeout,
-		)
+		), "etherscan"
 	default:
 		log.Printf("using wallet activity provider=mock")
-		return provider.NewMockWalletActivityProvider()
+		return provider.NewMockWalletActivityProvider(), "mock"
 	}
 }
 
-func buildLLMClient(cfg config.Config) ai.Client {
+func buildLLMClient(cfg config.Config) (ai.Client, string) {
 	switch cfg.LLMProviderType {
 	case "openai":
 		log.Printf("using llm provider=openai-compatible model=%s", cfg.OpenAIModel)
@@ -84,10 +100,10 @@ func buildLLMClient(cfg config.Config) ai.Client {
 			cfg.OpenAIAPIKey,
 			cfg.OpenAIModel,
 			cfg.HTTPTimeout,
-		)
+		), "openai"
 	default:
 		log.Printf("using llm provider=mock")
-		return ai.NewMockClient()
+		return ai.NewMockClient(), "mock"
 	}
 }
 

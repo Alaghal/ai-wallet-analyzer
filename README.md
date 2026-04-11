@@ -49,3 +49,26 @@ export LLM_PROVIDER_TYPE=openai
 export OPENAI_API_KEY=your_api_key
 export OPENAI_MODEL=gpt-4o-mini
 go run ./cmd/server
+```
+## Observability
+
+The service includes built-in observability features:
+
+- request correlation via `X-Request-Id`
+- access logging with method, path, status, and duration
+- panic recovery middleware
+- Prometheus-compatible metrics via `GET /metrics`
+
+### Collected metrics
+
+- HTTP request count
+- HTTP request duration
+- in-flight HTTP requests
+- wallet activity provider request count and latency
+- LLM request count and latency
+
+### Example
+
+```bash
+curl http://localhost:8080/metrics
+```
