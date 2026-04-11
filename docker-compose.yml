@@ -1,0 +1,44 @@
+services:
+  wallet-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai-wallet-analyzer
+    restart: unless-stopped
+    environment:
+      APP_ENV: docker
+      APP_PORT: 8080
+      LOG_LEVEL: info
+      PROVIDER_TYPE: mock
+      LLM_PROVIDER_TYPE: mock
+      HTTP_TIMEOUT_SECONDS: 5
+    ports:
+      - "8080:8080"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: wallet-analyzer-prometheus
+    restart: unless-stopped
+    depends_on:
+      - wallet-analyzer
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: wallet-analyzer-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  grafana_data:
