@@ -72,3 +72,24 @@ The service includes built-in observability features:
 ```bash
 curl http://localhost:8080/metrics
 ```
+
+## Docker Compose
+
+The project includes a local monitoring stack with:
+
+- `ai-wallet-analyzer` service
+- `Prometheus` for metrics scraping
+- `Grafana` for visualization
+
+### Run locally
+
+```bash
+docker compose up --build
+```
+## Monitoring
+
+The service exposes Prometheus-compatible metrics at:
+
+```text
+GET /metrics
+```
